@@ -1,0 +1,7 @@
+express
+mongoose
+cors
+body-parser
+uuid
+dotenv
+@google/generative-ai
