@@ -37,6 +37,17 @@ async function sendInviteEmail(meeting, toEmail){
   return sendMail({ to: toEmail, subject, text });
 }
 
+async function sendWelcomeEmail(user){
+  if (!user || !user.email) return;
+  const subject = `Welcome to Voiceboard Meet, ${user.name || ""}`;
+  const text = `Hi ${user.name || ""},\n\nYour account (${user.email}) has been created. You can now create and join meetings at ${process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`}.\n\nThanks!`;
+  try {
+    return sendMail({ to: user.email, subject, text });
+  } catch (e) {
+    console.error("Failed to send welcome email", e);
+  }
+}
+
 async function sendReminderEmail(meeting, toEmail){
   const subject = `Reminder: ${meeting.title} starts at ${formatDate(meeting.startTime)}`;
   const text = `Reminder: ${meeting.title} starts at ${formatDate(meeting.startTime)}.\n\nJoin or view details in the app.`;

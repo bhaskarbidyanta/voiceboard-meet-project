@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import MeetingForm from "../components/MeetingForm";
+import { io } from "socket.io-client";
+import Transcripts from "./Transcripts";
 
 export default function Meetings({ user, onLogout }) {
   const [meetings, setMeetings] = useState([]);
@@ -12,6 +14,29 @@ export default function Meetings({ user, onLogout }) {
 
   useEffect(() => {
     load();
+
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000");
+    socket.on("connect", () => console.log("socket connected", socket.id));
+
+    socket.on("meeting:created", (m) => {
+      setMeetings((prev) => [m, ...prev]);
+    });
+    socket.on("meeting:updated", (m) => {
+      setMeetings((prev) => prev.map((x) => (x._id === m._id ? m : x)));
+    });
+    socket.on("meeting:response", ({ meetingId, participant }) => {
+      setMeetings((prev) => prev.map((m) => {
+        if (m._id !== meetingId) return m;
+        const pIndex = m.participants.findIndex((p) => String(p.email || p.user) === String(participant.email || participant.user));
+        if (pIndex !== -1) m.participants[pIndex] = participant;
+        return { ...m };
+      }));
+    });
+    socket.on("meeting:reminder", ({ meetingId, email, minutesBefore }) => {
+      console.log(`Reminder sent ${minutesBefore}m for ${meetingId} -> ${email}`);
+    });
+
+    return () => socket.close();
   }, []);
 
   async function handleCreate(meetingPayload) {
@@ -30,31 +55,46 @@ export default function Meetings({ user, onLogout }) {
     alert("Manual reminders triggered");
   }
 
+  const [view, setView] = React.useState("meetings");
+
   return (
     <div className="container">
       <h2>Welcome, {user.name}</h2>
       <button onClick={onLogout}>Logout</button>
 
-      <h3>Create Meeting</h3>
-      <MeetingForm onCreate={handleCreate} />
+      <div style={{ marginTop: 12, marginBottom: 12 }}>
+        <button onClick={() => setView("meetings")} disabled={view === "meetings"}>Meetings</button>
+        <button onClick={() => setView("transcripts")} disabled={view === "transcripts"} style={{ marginLeft: 8 }}>Transcripts</button>
+      </div>
 
-      <h3>Meetings</h3>
-      <button onClick={load}>Refresh</button>
-      <ul className="meetings">
-        {meetings.map((m) => (
-          <li key={m._id} className="meeting">
-            <strong>{m.title}</strong>
-            <div>Starts: {new Date(m.startTime).toLocaleString()}</div>
-            <div>Participants: {m.participants.map((p) => p.email).join(", ")}</div>
-            <div>Status: {m.status}</div>
-            <div>
-              <button onClick={() => respond(m._id, "accepted")}>Accept</button>
-              <button onClick={() => respond(m._id, "declined")}>Decline</button>
-              <button onClick={() => notify(m._id)}>Send Reminder</button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {view === "meetings" && (
+        <>
+          <h3>Create Meeting</h3>
+          <MeetingForm onCreate={handleCreate} />
+
+          <h3>Meetings</h3>
+          <button onClick={load}>Refresh</button>
+          <ul className="meetings">
+            {meetings.map((m) => (
+              <li key={m._id} className="meeting">
+                <strong>{m.title}</strong>
+                <div>Starts: {new Date(m.startTime).toLocaleString()}</div>
+                <div>Participants: {m.participants.map((p) => p.email).join(", ")}</div>
+                <div>Status: {m.status}</div>
+                <div>
+                  <button onClick={() => respond(m._id, "accepted")}>Accept</button>
+                  <button onClick={() => respond(m._id, "declined")}>Decline</button>
+                  <button onClick={() => notify(m._id)}>Send Reminder</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {view === "transcripts" && (
+        <Transcripts />
+      )}
     </div>
   );
 }

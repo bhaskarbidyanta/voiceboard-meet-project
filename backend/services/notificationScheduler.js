@@ -23,6 +23,7 @@ async function scanAndSendReminders(){
             try {
               await emailService.sendReminderEmail(meeting, p.email);
               console.log(`Sent reminder ${r}min for meeting ${meeting._id} to ${p.email}`);
+              try { require('./socket').getIO().emit("meeting:reminder", { meetingId: meeting._id, email: p.email, minutesBefore: r }); } catch (e) {}
             } catch (e) {
               console.error("Failed to send reminder", e);
             }

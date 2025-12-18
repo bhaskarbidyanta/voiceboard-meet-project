@@ -3,12 +3,15 @@ const router = express.Router();
 const scheduleMeeting = require("../services/scheduler");
 const Meeting = require("../models/Meeting");
 const emailService = require("../services/emailService");
+const socketService = require("../services/socket");
 
 // Create meeting
 router.post("/", async (req, res) => {
   try {
     const { title, organizerId, participants, startTime, endTime, reminders } = req.body;
     const meeting = await scheduleMeeting({ title, organizerId, participants, startTime, endTime, reminders });
+    // Emit socket event
+    try { socketService.getIO().emit("meeting:created", meeting); } catch (e) {}
     res.status(201).json(meeting);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -51,6 +54,8 @@ router.put("/:id", async (req, res) => {
       if (p.email) emailService.sendUpdateEmail(meeting, p.email).catch((e) => console.error("Update email failed", e));
     }
 
+    try { socketService.getIO().emit("meeting:updated", meeting); } catch (e) {}
+
     res.json(meeting);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -73,6 +78,8 @@ router.post("/:id/respond", async (req, res) => {
 
     // send confirmation
     if (participant.email) emailService.sendResponseConfirmation(meeting, participant.email, status).catch((e) => console.error("Confirmation email failed", e));
+
+    try { socketService.getIO().emit("meeting:response", { meetingId: meeting._id, participant }); } catch (e) {}
 
     res.json({ success: true, participant });
   } catch (err) {

@@ -2,12 +2,14 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const http = require("http");
 const connectDB = require("./config/db");
 
 const userRoutes = require("./routes/userRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
 const transcriptRoutes = require("./routes/transcriptRoutes");
 const notificationScheduler = require("./services/notificationScheduler");
+const socketService = require("./services/socket");
 
 connectDB();
 
@@ -20,10 +22,15 @@ app.use("/api/meetings", meetingRoutes);
 app.use(express.json());
 app.use("/api/transcript", transcriptRoutes);
 
+const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+
+// Initialize socket.io
+socketService.init(server);
+
 // Start background reminder service
 notificationScheduler.startReminderService();
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });

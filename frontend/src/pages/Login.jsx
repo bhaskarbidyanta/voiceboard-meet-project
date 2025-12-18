@@ -9,12 +9,17 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     setError("");
     try {
-      const users = (await api.get("/users")).data;
-      const user = users.find((u) => u.email === email);
+      const normalized = email.trim().toLowerCase();
+      const res = await api.get(`/users?email=${encodeURIComponent(normalized)}`);
+      const user = res.data;
       if (user) return onLogin(user);
       setError("No user found with that email. Please register.");
     } catch (err) {
-      setError(err.message || "Login failed");
+      if (err.response && err.response.status === 404) {
+        setError("No user found with that email. Please register.");
+        return;
+      }
+      setError(err.response?.data?.error || err.message || "Login failed");
     }
   }
 

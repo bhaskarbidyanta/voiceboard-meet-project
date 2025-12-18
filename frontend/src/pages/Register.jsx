@@ -11,10 +11,24 @@ export default function Register({ onRegister }) {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/users", { name, email, role });
+      const normalizedEmail = email.trim().toLowerCase();
+      // Check if user exists first
+      try {
+        await api.get(`/users?email=${encodeURIComponent(normalizedEmail)}`);
+        setError("User already exists — please login");
+        return;
+      } catch (checkErr) {
+        if (checkErr.response && checkErr.response.status !== 404) {
+          setError(checkErr.response?.data?.error || "Error checking user");
+          return;
+        }
+        // not found -> proceed to create
+      }
+
+      const res = await api.post("/users", { name, email: normalizedEmail, role });
       onRegister(res.data);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.response?.data?.error || err.message || "Registration failed");
     }
   }
 
