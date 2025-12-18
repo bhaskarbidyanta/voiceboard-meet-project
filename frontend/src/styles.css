@@ -5,6 +5,9 @@ form { display: grid; gap: 8px; margin-bottom: 12px; }
 .meeting { border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; }
 .meeting button { margin-right: 6px; }
 .error { color: red; }
+.header { display: flex; justify-content: space-between; align-items: center; }
+.user-details { text-align: right; font-size: 0.95rem; color: #333; }
+.user-details div { margin-bottom: 4px; }
 .transcript-list { list-style: none; padding: 0; }
 .transcript { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background: #fafafa; }
 .transcript .structured { background: #222; color: #0f0; padding: 10px; overflow: auto; }

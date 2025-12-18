@@ -4,6 +4,7 @@ import api from "../services/api";
 export default function Register({ onRegister }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [officeEmail, setOfficeEmail] = useState("");
   const [role, setRole] = useState("employee");
   const [error, setError] = useState("");
 
@@ -25,7 +26,7 @@ export default function Register({ onRegister }) {
         // not found -> proceed to create
       }
 
-      const res = await api.post("/users", { name, email: normalizedEmail, role });
+      const res = await api.post("/users", { name, email: normalizedEmail, officeEmail: officeEmail.trim().toLowerCase() || undefined, role });
       onRegister(res.data);
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Registration failed");
@@ -40,6 +41,8 @@ export default function Register({ onRegister }) {
         <input value={name} onChange={(e) => setName(e.target.value)} required />
         <label>Email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label>Office contact email (optional)</label>
+        <input value={officeEmail} onChange={(e) => setOfficeEmail(e.target.value)} placeholder="office@example.com" />
         <label>Role</label>
         <select value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="employee">Employee</option>

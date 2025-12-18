@@ -1,27 +1,13 @@
 require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
 const http = require("http");
 const connectDB = require("./config/db");
-
-const userRoutes = require("./routes/userRoutes");
-const meetingRoutes = require("./routes/meetingRoutes");
-const transcriptRoutes = require("./routes/transcriptRoutes");
+const createApp = require("./app");
 const notificationScheduler = require("./services/notificationScheduler");
 const socketService = require("./services/socket");
 
 connectDB();
 
-const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-
-app.use("/users", userRoutes);
-app.use("/api/meetings", meetingRoutes);
-app.use(express.json());
-app.use("/api/transcript", transcriptRoutes);
-
+const app = createApp();
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
@@ -34,3 +20,6 @@ notificationScheduler.startReminderService();
 server.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
+// Export for tests if needed
+module.exports = { app, server };

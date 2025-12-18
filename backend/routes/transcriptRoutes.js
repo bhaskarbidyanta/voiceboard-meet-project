@@ -34,7 +34,8 @@ router.post("/", async (req, res) => {
   }
 });
 router.get("/", async (req, res) => {
-  const data = await Transcript.find();
+  // Return transcripts sorted by createdAt descending (newest first)
+  const data = await Transcript.find().sort({ createdAt: -1 });
   res.json(data);
 });
 

@@ -42,14 +42,35 @@ async function scheduleMeeting({ title, organizerId, participants = [], startTim
     remindersSent: []
   });
 
-  // Send invite emails
+  // Send invite emails only to verified users, and collect invite results
+  const inviteResults = [];
   for (const p of participantDocs) {
-    if (p.email) {
-      emailService.sendInviteEmail(meeting, p.email).catch((e) => console.error("Invite send failed", e));
+    const result = { email: p.email, user: p.user || null, invited: false };
+    if (!p.email) {
+      result.reason = "no_email";
+    } else if (p.user) {
+      const user = await User.findById(p.user);
+      if (!user) {
+        result.reason = "user_not_found";
+      } else if (!user.verified) {
+        result.reason = "user_not_verified";
+      } else {
+        try {
+          await emailService.sendInviteEmail(meeting, p.email);
+          result.invited = true;
+        } catch (e) {
+          console.error("Invite send failed", e);
+          result.reason = "send_failed";
+        }
+      }
+    } else {
+      // There's an email but no user record — do not send (policy: only verified users)
+      result.reason = "no_user_record";
     }
+    inviteResults.push(result);
   }
 
-  return meeting;
+  return { meeting, inviteResults };
 }
 
 module.exports = scheduleMeeting;

@@ -11,7 +11,9 @@ export default function Transcripts() {
     setLoading(true);
     try {
       const res = await api.get("/api/transcript");
-      setTranscripts(res.data || []);
+      // Ensure newest-first order (server already sorts, but double-check on client)
+      const list = (res.data || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setTranscripts(list);
     } catch (e) {
       console.error(e);
       setError(e.response?.data?.error || e.message || "Failed to load transcripts");

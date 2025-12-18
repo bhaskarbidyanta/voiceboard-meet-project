@@ -41,8 +41,18 @@ export default function Meetings({ user, onLogout }) {
 
   async function handleCreate(meetingPayload) {
     const payload = { ...meetingPayload, organizerId: user._id };
-    await api.post("/api/meetings", payload);
-    load();
+    try {
+      const res = await api.post("/api/meetings", payload);
+      const { meeting, inviteResults } = res.data;
+      load();
+      // Build a user-friendly message
+      const invited = inviteResults.filter((r) => r.invited).map((r) => r.email);
+      const skipped = inviteResults.filter((r) => !r.invited).map((r) => `${r.email} (${r.reason})`);
+      const msg = `Meeting created: ${meeting.title}. Invited: ${invited.join(", ") || "(none)"}. Skipped: ${skipped.join(", ") || "(none)"}`;
+      alert(msg);
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || "Create meeting failed");
+    }
   }
 
   async function respond(meetingId, status) {
@@ -59,8 +69,18 @@ export default function Meetings({ user, onLogout }) {
 
   return (
     <div className="container">
-      <h2>Welcome, {user.name}</h2>
-      <button onClick={onLogout}>Logout</button>
+      <div className="header">
+        <div>
+          <h2>Welcome, {user.name}</h2>
+          <button onClick={onLogout}>Logout</button>
+        </div>
+        <div className="user-details">
+          <div><strong>Email:</strong> {user.email}</div>
+          <div><strong>Role:</strong> {user.role}</div>
+          <div><strong>Verified:</strong> {user.verified ? "Yes" : "No"}</div>
+          <div><strong>Office Email:</strong> {user.officeEmail || "—"}</div>
+        </div>
+      </div>
 
       <div style={{ marginTop: 12, marginBottom: 12 }}>
         <button onClick={() => setView("meetings")} disabled={view === "meetings"}>Meetings</button>

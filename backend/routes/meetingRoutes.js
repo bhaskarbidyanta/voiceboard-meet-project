@@ -9,10 +9,10 @@ const socketService = require("../services/socket");
 router.post("/", async (req, res) => {
   try {
     const { title, organizerId, participants, startTime, endTime, reminders } = req.body;
-    const meeting = await scheduleMeeting({ title, organizerId, participants, startTime, endTime, reminders });
+    const { meeting, inviteResults } = await scheduleMeeting({ title, organizerId, participants, startTime, endTime, reminders });
     // Emit socket event
     try { socketService.getIO().emit("meeting:created", meeting); } catch (e) {}
-    res.status(201).json(meeting);
+    res.status(201).json({ meeting, inviteResults });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
