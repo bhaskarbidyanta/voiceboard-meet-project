@@ -1,0 +1,7 @@
+body { font-family: Arial, sans-serif; padding: 20px; }
+.container { max-width: 900px; margin: 0 auto; }
+form { display: grid; gap: 8px; margin-bottom: 12px; }
+.meetings { list-style: none; padding: 0; }
+.meeting { border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; }
+.meeting button { margin-right: 6px; }
+.error { color: red; }
