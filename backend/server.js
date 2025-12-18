@@ -7,6 +7,7 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
 const transcriptRoutes = require("./routes/transcriptRoutes");
+const notificationScheduler = require("./services/notificationScheduler");
 
 connectDB();
 
@@ -15,9 +16,12 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use("/users", userRoutes);
-app.use("/meetings", meetingRoutes);
+app.use("/api/meetings", meetingRoutes);
 app.use(express.json());
 app.use("/api/transcript", transcriptRoutes);
+
+// Start background reminder service
+notificationScheduler.startReminderService();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
