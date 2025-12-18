@@ -16,7 +16,8 @@ app.use(bodyParser.json());
 
 app.use("/users", userRoutes);
 app.use("/meetings", meetingRoutes);
-app.use("/transcript", transcriptRoutes);
+//app.use(express.json());
+app.use("/api/transcript", transcriptRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

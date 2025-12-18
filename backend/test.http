@@ -1,0 +1,7 @@
+POST http://localhost:5000/api/transcript
+Content-Type: application/json
+
+{
+  "text": "We discussed improving performance. John will optimize the API by Friday. Next review meeting next Monday."
+}
+
