@@ -33,5 +33,9 @@ router.post("/", async (req, res) => {
     res.status(500).json(response);
   }
 });
+router.get("/", async (req, res) => {
+  const data = await Transcript.find();
+  res.json(data);
+});
 
 module.exports = router;
