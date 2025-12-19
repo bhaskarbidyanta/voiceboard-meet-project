@@ -93,22 +93,47 @@ export default function Meetings({ user, onLogout }) {
           <MeetingForm onCreate={handleCreate} />
 
           <h3>Meetings</h3>
-          <button onClick={load}>Refresh</button>
-          <ul className="meetings">
-            {meetings.map((m) => (
-              <li key={m._id} className="meeting">
-                <strong>{m.title}</strong>
-                <div>Starts: {new Date(m.startTime).toLocaleString()}</div>
-                <div>Participants: {m.participants.map((p) => p.email).join(", ")}</div>
-                <div>Status: {m.status}</div>
-                <div>
-                  <button onClick={() => respond(m._id, "accepted")}>Accept</button>
-                  <button onClick={() => respond(m._id, "declined")}>Decline</button>
-                  <button onClick={() => notify(m._id)}>Send Reminder</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <button onClick={load}>Refresh</button>
+            <div style={{ color: '#666' }}>{meetings.length} meeting{meetings.length !== 1 ? 's' : ''}</div>
+          </div>
+
+          <div className="meetings-grid">
+            {meetings.map((m) => {
+              const accepted = m.participants.filter((p) => p.status === 'accepted').length;
+              const declined = m.participants.filter((p) => p.status === 'declined').length;
+              const invited = m.participants.length - accepted - declined;
+              const startsAt = new Date(m.startTime);
+              const isSoon = (startsAt - Date.now()) < 60 * 60 * 1000; // within 1 hour
+              const cardClass = `meeting-card ${m.status} ${declined > 0 ? 'attention' : ''} ${isSoon ? 'soon' : ''}`;
+
+              return (
+                <div key={m._id} className={cardClass}>
+                  <div className="meeting-head">
+                    <div className="meeting-title">{m.title}</div>
+                    <div className="badges">
+                      <span className="badge">📅 {new Date(m.startTime).toLocaleString()}</span>
+                      <span className="badge">👥 {m.participants.length}</span>
+                    </div>
+                  </div>
+
+                  <div className="meeting-meta">
+                    <div className="meta-item">Accepted: <strong>{accepted}</strong></div>
+                    <div className="meta-item">Declined: <strong>{declined}</strong></div>
+                    <div className="meta-item">Invited: <strong>{invited}</strong></div>
+                  </div>
+
+                  <div className="meeting-actions">
+                    <button onClick={() => respond(m._id, "accepted")}>Accept</button>
+                    <button onClick={() => respond(m._id, "declined")}>Decline</button>
+                    <button onClick={() => notify(m._id)}>Notify</button>
+                  </div>
+
+                  <div className="meeting-footer">Status: <span className="status">{m.status}</span></div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </>
       )}
 

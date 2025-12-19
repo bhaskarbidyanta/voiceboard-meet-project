@@ -46,6 +46,24 @@ router.post('/send-mailgun-js', async (req, res) => {
   }
 });
 
+// GET /api/debug/mail-config
+// Returns which mail transport is detected (safe — no secrets are returned)
+router.get('/mail-config', (req, res) => {
+  const mgKey = !!(process.env.MAILGUN_API_KEY || process.env.API_KEY_MAILGUN || process.env.API_KEY_MAILGUB);
+  const mgSmtp = !!(process.env.MAILGUN_DOMAIN && process.env.MAILGUN_SMTP_PASSWORD);
+  const smtp = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const nodemailerInstalled = (() => {
+    try { require.resolve('nodemailer'); return true; } catch (e) { return false; }
+  })();
+  return res.json({
+    mailgunHttpConfigured: mgKey && !!process.env.MAILGUN_DOMAIN,
+    mailgunSmtpConfigured: mgSmtp,
+    smtpConfigured: smtp,
+    nodemailerInstalled,
+    mailgunDomain: !!process.env.MAILGUN_DOMAIN
+  });
+});
+
 // POST /api/debug/test-mail-config
 // body: { mode: 'mailgun-http' | 'mailgun-smtp' | 'smtp', config: {...}, to, subject, text, html }
 router.post('/test-mail-config', async (req, res) => {

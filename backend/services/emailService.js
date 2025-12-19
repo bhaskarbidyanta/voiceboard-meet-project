@@ -12,12 +12,15 @@ const qs = require('qs');
 let transporter = null;
 let provider = null;
 let useMailgunHttp = false;
+let mgApiKeyVar = null;
 
 // Priority: MAILGUN_API_KEY (HTTP API) > nodemailer Mailgun SMTP > nodemailer generic SMTP
-if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+const mgApiKeyCandidate = process.env.MAILGUN_API_KEY || process.env.API_KEY_MAILGUN || process.env.API_KEY_MAILGUB;
+if (mgApiKeyCandidate && process.env.MAILGUN_DOMAIN) {
   useMailgunHttp = true;
   provider = 'mailgun-http';
-  console.log('EmailService: configured Mailgun HTTP API for domain', process.env.MAILGUN_DOMAIN);
+  mgApiKeyVar = mgApiKeyCandidate;
+  console.log('EmailService: configured Mailgun HTTP API for domain', process.env.MAILGUN_DOMAIN, '(using MAILGUN_API_KEY or API_KEY_MAILGUN alias)');
 } else if (nodemailer) {
   if (process.env.MAILGUN_DOMAIN && process.env.MAILGUN_SMTP_PASSWORD) {
     const domain = process.env.MAILGUN_DOMAIN;
@@ -68,9 +71,23 @@ async function sendMail(opts){
       if (opts.text) data.text = opts.text;
       if (opts.html) data.html = opts.html;
 
+      // Prefer mailgun.js SDK if available
+      try {
+        const FormData = require('form-data');
+        const Mailgun = require('mailgun.js');
+        const mailgun = new Mailgun(FormData);
+        const mg = mailgun.client({ username: 'api', key: mgApiKeyVar || process.env.MAILGUN_API_KEY });
+        const sdkRes = await mg.messages.create(domain, data);
+        console.log('Email sent via mailgun.js SDK', { to: opts.to, subject: opts.subject });
+        return sdkRes;
+      } catch (sdkErr) {
+        // SDK not installed or failed — fall back to raw HTTP
+        console.warn('mailgun.js SDK not available or failed, falling back to HTTP:', sdkErr && sdkErr.message);
+      }
+
       const url = `https://api.mailgun.net/v3/${domain}/messages`;
       const res = await axios.post(url, qs.stringify(data), {
-        auth: { username: 'api', password: process.env.MAILGUN_API_KEY },
+        auth: { username: 'api', password: mgApiKeyVar || process.env.MAILGUN_API_KEY },
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       console.log('Email sent via Mailgun HTTP', { to: opts.to, subject: opts.subject });

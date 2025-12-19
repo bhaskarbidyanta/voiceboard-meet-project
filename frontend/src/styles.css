@@ -13,3 +13,25 @@ form { display: grid; gap: 8px; margin-bottom: 12px; }
 .transcript .structured { background: #222; color: #0f0; padding: 10px; overflow: auto; }
 textarea { width: 100%; }
 
+/* Meetings grid cards */
+.meetings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 12px; }
+.meeting-card { border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); background: #fff; border: 1px solid #e6e6e6; display: flex; flex-direction: column; gap: 8px; }
+.meeting-card.scheduled { border-left: 6px solid #3b82f6; }
+.meeting-card.attention { border-left: 6px solid #f59e0b; }
+.meeting-card.cancelled { opacity: 0.7; border-left: 6px solid #6b7280; }
+.meeting-card.soon { box-shadow: 0 4px 12px rgba(59,130,246,0.08); }
+.meeting-head { display:flex; justify-content: space-between; align-items: center; }
+.meeting-title { font-weight: 700; font-size: 1.05rem; }
+.badges { display:flex; gap: 6px; }
+.badge { background: #f3f4f6; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; }
+.meeting-meta { display:flex; gap: 12px; color:#555; font-size:0.9rem; }
+.meeting-actions { display:flex; gap:8px; margin-top: 8px; }
+.meeting-actions button{ padding:6px 8px; border-radius:6px; border: none; cursor:pointer; background:#efefef }
+.meeting-actions button:hover{ transform: translateY(-1px) }
+.meeting-footer { margin-top: 8px; color:#333; font-size:0.85rem; }
+.status { font-weight:700; padding:3px 6px; border-radius:4px; background:#f1f5f9; }
+
+@media (max-width: 600px){
+  .container { padding: 12px }
+  .meetings-grid { grid-template-columns: 1fr; }
+}
