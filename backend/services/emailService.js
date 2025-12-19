@@ -1,26 +1,101 @@
-const nodemailer = require("nodemailer");
-
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-  console.warn("SMTP_USER or SMTP_PASS not set — email sending will fail without credentials");
+let nodemailer;
+try {
+  nodemailer = require("nodemailer");
+} catch (e) {
+  nodemailer = null;
+  console.warn("nodemailer not installed — will try HTTP Mailgun if configured");
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+const axios = require('axios');
+const qs = require('qs');
+
+let transporter = null;
+let provider = null;
+let useMailgunHttp = false;
+
+// Priority: MAILGUN_API_KEY (HTTP API) > nodemailer Mailgun SMTP > nodemailer generic SMTP
+if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+  useMailgunHttp = true;
+  provider = 'mailgun-http';
+  console.log('EmailService: configured Mailgun HTTP API for domain', process.env.MAILGUN_DOMAIN);
+} else if (nodemailer) {
+  if (process.env.MAILGUN_DOMAIN && process.env.MAILGUN_SMTP_PASSWORD) {
+    const domain = process.env.MAILGUN_DOMAIN;
+    const user = `postmaster@${domain}`;
+    transporter = nodemailer.createTransport({
+      host: "smtp.mailgun.org",
+      port: parseInt(process.env.MAILGUN_SMTP_PORT || "587", 10),
+      secure: (process.env.MAILGUN_SMTP_PORT || "587") === "465",
+      auth: { user, pass: process.env.MAILGUN_SMTP_PASSWORD },
+      requireTLS: true
+    });
+    provider = "mailgun-smtp";
+    console.log("EmailService: configured Mailgun SMTP for domain", domain);
+  } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    const port = parseInt(process.env.SMTP_PORT || "465", 10);
+    const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465;
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+    provider = "smtp";
+    console.log("EmailService: configured SMTP host", host);
+  } else {
+    console.warn("No SMTP configuration found — emails will be no-op (set MAILGUN_* or SMTP_* env vars)");
   }
-});
+} else {
+  if (!useMailgunHttp) console.warn('No mail transport available and no Mailgun HTTP API configured — emails will be no-op');
+}
 
 function formatDate(dt){
   return new Date(dt).toLocaleString();
 }
 
 async function sendMail(opts){
-  const mail = Object.assign({ from: process.env.SMTP_USER }, opts);
-  return transporter.sendMail(mail);
+  // If Mailgun HTTP is configured, prefer that (doesn't require nodemailer)
+  if (useMailgunHttp) {
+    try {
+      const domain = process.env.MAILGUN_DOMAIN;
+      const from = process.env.EMAIL_FROM || `postmaster@${domain}`;
+      const data = {
+        from,
+        to: opts.to,
+        subject: opts.subject,
+      };
+      if (opts.text) data.text = opts.text;
+      if (opts.html) data.html = opts.html;
+
+      const url = `https://api.mailgun.net/v3/${domain}/messages`;
+      const res = await axios.post(url, qs.stringify(data), {
+        auth: { username: 'api', password: process.env.MAILGUN_API_KEY },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      console.log('Email sent via Mailgun HTTP', { to: opts.to, subject: opts.subject });
+      return res.data;
+    } catch (e) {
+      console.error('Failed to send via Mailgun HTTP', e.response && e.response.data ? e.response.data : e.message);
+      throw e;
+    }
+  }
+
+  if (!transporter) {
+    console.warn("sendMail skipped (no transporter) ->", opts.to, opts.subject);
+    return { skipped: true };
+  }
+
+  const from = process.env.EMAIL_FROM || (transporter.options && transporter.options.auth && transporter.options.auth.user) || process.env.SMTP_USER;
+  const mail = Object.assign({ from }, opts);
+  try {
+    const info = await transporter.sendMail(mail);
+    console.log("Email sent", { to: opts.to, subject: opts.subject, provider });
+    return info;
+  } catch (e) {
+    console.error("Failed to send email", e);
+    throw e;
+  }
 }
 
 function buildResponseLinks(meetingId, email){
@@ -70,5 +145,8 @@ module.exports = {
   sendInviteEmail,
   sendReminderEmail,
   sendUpdateEmail,
-  sendResponseConfirmation
+  sendResponseConfirmation,
+  sendWelcomeEmail,
+  // For debugging & tests: send a raw mail object { to, subject, text, html }
+  sendRawEmail: sendMail
 };

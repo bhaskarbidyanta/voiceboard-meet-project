@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const userRoutes = require("./routes/userRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
 const transcriptRoutes = require("./routes/transcriptRoutes");
+const debugRoutes = require("./routes/debugRoutes");
 
 function createApp() {
   const app = express();
@@ -15,6 +16,7 @@ function createApp() {
   app.use("/api/meetings", meetingRoutes);
   app.use(express.json());
   app.use("/api/transcript", transcriptRoutes);
+  app.use("/api/debug", debugRoutes);
 
   return app;
 }
